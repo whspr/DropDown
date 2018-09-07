@@ -42,7 +42,7 @@ extension UIBarButtonItem: AnchorView {
 
 /// A Material Design drop down in replacement for `UIPickerView`.
 public final class DropDown: UIView {
-
+    
 	//TODO: handle iOS 7 landscape mode
 
 	/// The dismiss mode for a drop down.
@@ -72,6 +72,19 @@ public final class DropDown: UIView {
 		case bottom
 
 	}
+    
+    /// Background fill type
+    public enum DimmedType {
+        
+        /// All underliyng screen fills by dimmed color
+        case allScreen
+        
+        /// Underliyng screen fill with offset from top
+        case topOffset
+        
+        /// Underliyng screen fill with offset from bottom
+        case bottomOffset
+    }
 
 	//MARK: - Properties
 
@@ -79,6 +92,7 @@ public final class DropDown: UIView {
 	public static weak var VisibleDropDown: DropDown?
 
 	//MARK: UI
+    fileprivate let dimmedView = UIView()
 	fileprivate let dismissableView = UIView()
 	fileprivate let tableViewContainer = UIView()
 	fileprivate let tableView = UITableView()
@@ -193,11 +207,51 @@ public final class DropDown: UIView {
 		set { tableViewBackgroundColor = newValue! }
 	}
 
+    /**
+     Show what offset use to draw dimmedView
+     */
+    public var dimmedType: DimmedType = .topOffset {
+        willSet {
+            switch newValue {
+            case .allScreen:
+                dimmedView.frame = CGRect(x: 0, y: 0, width: super.bounds.width, height: super.bounds.height)
+            case .topOffset:
+                dimmedView.frame = CGRect(x: 0, y: dimmedTopOffset, width: super.bounds.width, height: super.bounds.height - dimmedTopOffset)
+            case .bottomOffset:
+                dimmedView.frame = CGRect(x: 0, y: 0, width: super.bounds.width, height: super.bounds.height - dimmedBottomOffset)
+            }
+        }
+    }
+    
+    /**
+     dimmedType is .topOffset
+     */
+    public var dimmedTopOffset: CGFloat = 0 {
+        willSet {
+            if dimmedType == .topOffset {
+                dimmedView.frame = CGRect(x: 0, y: newValue, width: super.bounds.width, height: super.bounds.height - newValue)
+            }
+        }
+    }
+    
+    /**
+     dimmedType is .bottomOffset
+     */
+    public var dimmedBottomOffset: CGFloat = 0 {
+        willSet {
+            if dimmedType == .bottomOffset {
+                dimmedView.frame = CGRect(x: 0, y: 0, width: super.bounds.width, height: super.bounds.height - newValue)
+            }
+        }
+    }
+    
 	/**
 	The color of the dimmed background (behind the drop down, covering the entire screen).
 	*/
 	public var dimmedBackgroundColor = UIColor.clear {
-		willSet { super.backgroundColor = newValue }
+		willSet {
+            self.dimmedView.backgroundColor = newValue
+        }
 	}
 
 	/**
@@ -497,8 +551,17 @@ private extension DropDown {
 	}
 
 	func setupUI() {
-		super.backgroundColor = dimmedBackgroundColor
-
+        switch dimmedType {
+        case .allScreen:
+            dimmedView.frame = CGRect(x: 0, y: 0, width: super.bounds.width, height: super.bounds.height)
+        case .topOffset:
+            dimmedView.frame = CGRect(x: 0, y: dimmedTopOffset, width: super.bounds.width, height: super.bounds.height - dimmedTopOffset)
+        case .bottomOffset:
+            dimmedView.frame = CGRect(x: 0, y: 0, width: super.bounds.width, height: super.bounds.height - dimmedBottomOffset)
+        }
+        dimmedView.backgroundColor = dimmedBackgroundColor
+        self.addSubview(dimmedView)
+        self.sendSubview(toBack: dimmedView)
 		tableViewContainer.layer.masksToBounds = false
 		tableViewContainer.layer.cornerRadius = cornerRadius
 		tableViewContainer.layer.shadowColor = shadowColor.cgColor
